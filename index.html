@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click the Box Game</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        #gameContainer {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: auto;
+            border: 3px solid black;
+            overflow: hidden;
+            background-color: white;
+        }
+        #box {
+            width: 50px;
+            height: 50px;
+            background-color: red;
+            position: absolute;
+            cursor: pointer;
+            border: 2px solid black;
+            transition: transform 0.1s ease-in-out;
+        }
+        .infoPanel {
+            display: flex;
+            justify-content: space-around;
+            font-size: 20px;
+            background-color: #222;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            width: 420px;
+            margin: 10px auto;
+        }
+        #popupContainer {
+            position: relative;
+            width: 420px;
+            margin: auto;
+            height: 100px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .popup {
+            background-color: #ffeb3b;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            color: black;
+            opacity: 1;
+            transition: opacity 0.5s, transform 0.5s;
+            position: absolute;
+            width: 90%;
+            text-align: center;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>Click the Box Game</h1>
+    <div class="infoPanel">
+        <span>Time Left: <span id="timer">60</span> secs</span>
+        <span>Score: <span id="score">0</span></span>
+        <span>Multiplier: <span id="multiplier">x1</span></span>
+        <span>High Score: <span id="highScore">0</span></span>
+    </div>
+    <div id="popupContainer"></div>
+    <div id="gameContainer">
+        <div id="box"></div>
+    </div>
+    <button id="startButton" onclick="startGame()">Start Game</button>
+    <button id="restartButton" onclick="restartGame()" style="display:none;">Restart</button>
+
+    <script>
+        let score = 0;
+        let multiplier = 1;
+        let timeLeft = 60;
+        let highScore = localStorage.getItem("highScore") || 0;
+        let gameActive = false;
+        let posX = 0, posY = 0;
+        let angleX = 0, angleY = 0;
+        let speed = 0.2;
+        
+        const box = document.getElementById("box");
+        const scoreDisplay = document.getElementById("score");
+        const timerDisplay = document.getElementById("timer");
+        const multiplierDisplay = document.getElementById("multiplier");
+        const highScoreDisplay = document.getElementById("highScore");
+        const gameContainer = document.getElementById("gameContainer");
+        const popupContainer = document.getElementById("popupContainer");
+        const startButton = document.getElementById("startButton");
+        const restartButton = document.getElementById("restartButton");
+        
+        highScoreDisplay.textContent = highScore;
+
+        function moveBox() {
+            let maxX = gameContainer.clientWidth - box.clientWidth;
+            let maxY = gameContainer.clientHeight - box.clientHeight;
+            
+            angleX += 0.02 * speed;
+            angleY += 0.015 * speed;
+            
+            posX = (Math.sin(angleX) + 1) / 2 * maxX;
+            posY = (Math.cos(angleY) + 1) / 2 * maxY;
+            
+            box.style.transform = `translate(${posX}px, ${posY}px)`;
+            if (gameActive) requestAnimationFrame(moveBox);
+        }
+
+        function startGame() {
+            score = 0;
+            multiplier = 1;
+            timeLeft = 60;
+            gameActive = true;
+            scoreDisplay.textContent = score;
+            multiplierDisplay.textContent = "x" + multiplier;
+            timerDisplay.textContent = timeLeft;
+            startButton.textContent = "Reset";
+            restartButton.style.display = "inline";
+            speed = 0.2;
+            requestAnimationFrame(moveBox);
+        }
+        
+        function restartGame() {
+            localStorage.setItem("highScore", 0);
+            highScore = 0;
+            highScoreDisplay.textContent = highScore;
+            gameActive = false;
+            startGame();
+        }
+
+        function showPopup(message) {
+            let popup = document.createElement("div");
+            popup.classList.add("popup");
+            popup.textContent = message;
+            popupContainer.appendChild(popup);
+            let offset = popupContainer.childNodes.length * 25;
+            popup.style.transform = `translateY(${offset}px)`;
+            setTimeout(() => {
+                popup.style.opacity = "0";
+                setTimeout(() => popup.remove(), 500);
+            }, 5000);
+        }
+        
+        box.addEventListener("click", function () {
+            if (!gameActive) return;
+            score += 1 * multiplier;
+            multiplier++;
+            scoreDisplay.textContent = score;
+            multiplierDisplay.textContent = "x" + multiplier;
+            box.style.opacity = "0.6";
+            setTimeout(() => box.style.opacity = "1", 100);
+            speed = 0.2 + (multiplier >= 5 ? (multiplier - 4) * 0.01 : 0);
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore);
+                highScoreDisplay.textContent = highScore;
+                showPopup("🔥 New High Score!");
+            }
+            if (multiplier % 3 === 0) {
+                showPopup("Great streak! Keep going!");
+            }
+            if (multiplier % 5 === 0) {
+                showPopup("Speeding up! Stay sharp!");
+            }
+        });
+        
+        gameContainer.addEventListener("click", function (event) {
+            if (event.target !== box) {
+                multiplier = 1;
+                multiplierDisplay.textContent = "x1";
+                showPopup("Momentum Lost! You misclicked.");
+            }
+        });
+    </script>
+</body>
+</html>
